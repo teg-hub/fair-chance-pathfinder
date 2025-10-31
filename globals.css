@@ -1,0 +1,8 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+:root { --brand: #2556d1; }
+a { color: var(--brand); text-decoration: none; }
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.nav { display:flex; gap:12px; align-items:center; }
+.nav a { padding: 8px 12px; border-radius: 10px; }
+.nav a.active { background:#e9eefc; }
