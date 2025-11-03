@@ -1,3 +1,4 @@
+// app/auth/signup/page.tsx
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -8,14 +9,13 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState<string>();
-  const [ok, setOk] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErr(undefined); setOk(false);
+    setErr(undefined);
     const { error } = await sb.auth.signUp({ email, password });
     if (error) setErr(error.message);
-    else { setOk(true); window.location.href = '/auth/login'; }
+    else window.location.href = '/auth/login';
   }
 
   return (
@@ -26,7 +26,6 @@ export default function SignupPage() {
         <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required />
         <button type="submit">Sign up</button>
         {err && <p style={{ color: 'crimson' }}>{err}</p>}
-        {ok && <p>Account created. Redirecting…</p>}
       </form>
       <p style={{ marginTop: 12 }}>
         Have an account? <Link href="/auth/login">Sign in</Link>
@@ -34,6 +33,3 @@ export default function SignupPage() {
     </main>
   );
 }
-<p style={{marginTop:12}}>
-  No account? <Link href="/auth/signup">Sign up</Link>
-</p>
