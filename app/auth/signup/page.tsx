@@ -34,3 +34,6 @@ export default function SignupPage() {
     </main>
   );
 }
+<p style={{marginTop:12}}>
+  No account? <Link href="/auth/signup">Sign up</Link>
+</p>
