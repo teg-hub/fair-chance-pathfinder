@@ -10,13 +10,34 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [err, setErr] = useState<string>();
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(undefined);
-    const { error } = await sb.auth.signUp({ email, password });
-    if (error) setErr(error.message);
-    else window.location.href = '/auth/login';
+async function onSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  setErr(undefined);
+
+  // 1) Create the Supabase auth user
+  const { error } = await sb.auth.signUp({ email, password });
+  if (error) {
+    setErr(error.message);
+    return;
   }
+
+  // 2) Provision into your 3CDC org via server API (from step 2)
+  //    Change role to 'coordinator' if preferred.
+  const res = await fetch('/api/provision', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, role: 'admin' })
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    setErr(data?.error ?? 'Provisioning failed');
+    return;
+  }
+
+  // 3) Go to login
+  window.location.href = '/auth/login';
+}
 
   return (
     <main className="container" style={{ maxWidth: 420 }}>
