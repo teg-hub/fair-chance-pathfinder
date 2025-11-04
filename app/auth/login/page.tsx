@@ -10,11 +10,24 @@ export default function LoginPage() {
   const [err, setErr] = useState<string>();
 
   async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) setErr(error.message);
-    else window.location.href = '/dashboard';
-  }
+  e.preventDefault();
+  setErr(undefined);
+
+  // 1) Sign in
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { setErr(error.message); return; }
+
+  // 2) Initialize DB session (calls /api/session → sets GUCs)
+  await fetch('/api/session', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ email })
+  });
+
+  // 3) Go to dashboard
+  window.location.href = '/dashboard';
+}
+
 
   return (
     <main className="container" style={{maxWidth:420}}>
