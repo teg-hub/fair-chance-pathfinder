@@ -1,145 +1,35 @@
-// app/employees/[id]/page.tsx
 'use client';
-
+export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 
-type Opt = { id: string; name?: string; email?: string };
-
-export default function EditEmployee() {
-  const sb = supabaseBrowser();
+export default function EmployeeDebug() {
   const { id } = useParams<{ id: string }>();
-
-  const [deps, setDeps] = useState<Opt[]>([]);
-  const [types, setTypes] = useState<Opt[]>([]);
-  const [coords, setCoords] = useState<Opt[]>([]);
-  const [form, setForm] = useState<any>();
-  const [err, setErr] = useState<string>();
-
-  function update(k: string, v: any) {
-    setForm((p: any) => ({ ...p, [k]: v }));
-  }
+  const sb = supabaseBrowser();
+  const [state, setState] = useState<any>({ status: 'loading' });
 
   useEffect(() => { (async () => {
-  const { data: { user } } = await sb.auth.getUser();
-  const email = user?.email ?? '';
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      const email = user?.email ?? '';
+      const [catRes, empRes] = await Promise.all([
+        fetch('/api/catalogs', { headers: { 'x-user-email': email } }),
+        fetch(`/api/employees/${id}`, { headers: { 'x-user-email': email } })
+      ]);
+      const cat = await catRes.json().catch(() => ({}));
+      const emp = await empRes.json().catch(() => ({}));
+      setState({
+        status: 'done',
+        email,
+        id,
+        catalogs: { ok: catRes.ok, status: catRes.status, body: cat },
+        employee: { ok: empRes.ok, status: empRes.status, body: emp }
+      });
+    } catch (e:any) {
+      setState({ status:'error', message: e?.message || String(e), id });
+    }
+  })(); }, [id, sb]);
 
-  const [catRes, empRes] = await Promise.all([
-    fetch('/api/catalogs', { headers: { 'x-user-email': email } }),
-    fetch(`/api/employees/${id}`, { headers: { 'x-user-email': email } })
-  ]);
-
-  const cat = await catRes.json();
-  const emp = await empRes.json();
-
-  if (cat.error) setErr(cat.error);
-  else { setDeps(cat.departments); setTypes(cat.employment_types); setCoords(cat.coordinators); }
-
-  if (emp.error) setErr(emp.error);
-  else setForm({
-    employee_id: emp.data.employee_id,
-    first_name: emp.data.first_name,
-    last_name: emp.data.last_name,
-    emp_email: emp.data.email,
-    phone_numbers: emp.data.phone_numbers ?? [],
-    department_id: emp.data.department_id,
-    employment_type_id: emp.data.employment_type_id,
-    assigned_coordinator_id: emp.data.assigned_coordinator_id
-  });
-})(); }, [id, sb]);
-
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(undefined);
-    const { data: { user } } = await sb.auth.getUser();
-    const res = await fetch(`/api/employees/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, email: user?.email })
-    });
-    const j = await res.json();
-    if (!res.ok) { setErr(j.error); return; }
-    window.location.href = '/employees';
-  }
-
-  async function remove() {
-    if (!confirm('Delete this employee?')) return;
-    const { data: { user } } = await sb.auth.getUser();
-    const res = await fetch(`/api/employees/${id}`, {
-      method: 'DELETE',
-      headers: { 'x-user-email': user?.email ?? '' }
-    });
-    const j = await res.json();
-    if (!res.ok) { setErr(j.error); return; }
-    window.location.href = '/employees';
-  }
-
-  if (!form) return <main className="container">Loading…</main>;
-
-  return (
-    <main className="container" style={{ maxWidth: 720 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <h2>Edit Employee</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link href={`/employees/${id}/notes/new`}><button>New Progress Note</button></Link>
-          <Link href="/employees"><button>Back to List</button></Link>
-        </div>
-      </div>
-
-      <form onSubmit={save} style={{ display: 'grid', gap: 10 }}>
-        <input placeholder="Employee ID" value={form.employee_id ?? ''} onChange={e => update('employee_id', e.target.value)} required />
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input placeholder="First name" value={form.first_name ?? ''} onChange={e => update('first_name', e.target.value)} />
-          <input placeholder="Last name" value={form.last_name ?? ''} onChange={e => update('last_name', e.target.value)} />
-        </div>
-        <input placeholder="Email" value={form.emp_email ?? ''} onChange={e => update('emp_email', e.target.value)} />
-
-        <div style={{ display: 'grid', gap: 6 }}>
-          <input
-            placeholder="Phone 1"
-            value={form.phone_numbers?.[0] ?? ''}
-            onChange={e => {
-              const arr = [...(form.phone_numbers ?? [])];
-              arr[0] = e.target.value;
-              update('phone_numbers', arr);
-            }}
-          />
-          <input
-            placeholder="Phone 2 (optional)"
-            value={form.phone_numbers?.[1] ?? ''}
-            onChange={e => {
-              const arr = [...(form.phone_numbers ?? [])];
-              arr[1] = e.target.value;
-              update('phone_numbers', arr);
-            }}
-          />
-        </div>
-
-        <select value={form.department_id ?? ''} onChange={e => update('department_id', e.target.value)} required>
-          <option value="">Select department</option>
-          {deps.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-
-        <select value={form.employment_type_id ?? ''} onChange={e => update('employment_type_id', e.target.value)} required>
-          <option value="">Select employment type</option>
-          {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
-
-        <select value={form.assigned_coordinator_id ?? ''} onChange={e => update('assigned_coordinator_id', e.target.value)} required>
-          <option value="">Assign coordinator</option>
-          {coords.map(c => <option key={c.id} value={c.id}>{c.email}</option>)}
-        </select>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="submit">Save</button>
-          <button type="button" onClick={remove}>Delete</button>
-        </div>
-
-        {err && <p style={{ color: 'crimson' }}>{err}</p>}
-      </form>
-    </main>
-  );
+  return <main className="container"><pre>{JSON.stringify(state, null, 2)}</pre></main>;
 }
