@@ -22,36 +22,34 @@ export default function EditEmployee() {
     setForm((p: any) => ({ ...p, [k]: v }));
   }
 
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await sb.auth.getUser();
-      const [catRes, empRes] = await Promise.all([
-        fetch('/api/catalogs', { headers: { 'x-user-email': user?.email ?? '' } }),
-        fetch(`/api/employees/${id}`, { headers: { 'x-user-email': user?.email ?? '' } })
-      ]);
-      const cat = await catRes.json();
-      const emp = await empRes.json();
+  useEffect(() => { (async () => {
+  const { data: { user } } = await sb.auth.getUser();
+  const email = user?.email ?? '';
 
-      if (cat.error) setErr(cat.error);
-      else {
-        setDeps(cat.departments);
-        setTypes(cat.employment_types);
-        setCoords(cat.coordinators);
-      }
+  const [catRes, empRes] = await Promise.all([
+    fetch('/api/catalogs', { headers: { 'x-user-email': email } }),
+    fetch(`/api/employees/${id}`, { headers: { 'x-user-email': email } })
+  ]);
 
-      if (emp.error) setErr(emp.error);
-      else setForm({
-        employee_id: emp.data.employee_id,
-        first_name: emp.data.first_name,
-        last_name: emp.data.last_name,
-        emp_email: emp.data.email,
-        phone_numbers: emp.data.phone_numbers ?? [],
-        department_id: emp.data.department_id,
-        employment_type_id: emp.data.employment_type_id,
-        assigned_coordinator_id: emp.data.assigned_coordinator_id
-      });
-    })();
-  }, [id, sb]);
+  const cat = await catRes.json();
+  const emp = await empRes.json();
+
+  if (cat.error) setErr(cat.error);
+  else { setDeps(cat.departments); setTypes(cat.employment_types); setCoords(cat.coordinators); }
+
+  if (emp.error) setErr(emp.error);
+  else setForm({
+    employee_id: emp.data.employee_id,
+    first_name: emp.data.first_name,
+    last_name: emp.data.last_name,
+    emp_email: emp.data.email,
+    phone_numbers: emp.data.phone_numbers ?? [],
+    department_id: emp.data.department_id,
+    employment_type_id: emp.data.employment_type_id,
+    assigned_coordinator_id: emp.data.assigned_coordinator_id
+  });
+})(); }, [id, sb]);
+
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
