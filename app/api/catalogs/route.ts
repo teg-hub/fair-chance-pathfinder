@@ -1,4 +1,3 @@
-// app/api/catalogs/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 export const runtime = 'nodejs';
@@ -14,10 +13,12 @@ export async function GET(req: NextRequest) {
     admin.from('departments').select('id,name').eq('active', true).order('name'),
     admin.from('employment_types').select('id,name').eq('active', true).order('name'),
     admin.from('users').select('id,email').order('email').limit(200),
-    admin.from('areas_of_need').select('id,name,is_opt_out,is_other,active').eq('active', true).order('name'),
+    admin.from('areas_of_need').select('id,name,active').eq('active', true).order('name'),
     admin.from('channels').select('id,name,active').eq('active', true).order('name'),
   ]);
-  for (const r of [deps, types, coords, needs, chans]) if (r.error) return NextResponse.json({ error: r.error.message }, { status: 400 });
+  for (const r of [deps, types, coords, needs, chans]) {
+    if (r.error) return NextResponse.json({ error: r.error.message }, { status: 400 });
+  }
 
   return NextResponse.json({
     departments: deps.data,
